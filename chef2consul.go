@@ -44,6 +44,10 @@ func init() {
 
 func main() {
 
+	if _, err := os.Stat(input.KnifeRbFile); os.IsNotExist(err) {
+		log.Fatal("You must provide a valid path to the knife RB (is KNIFERB_FILE env var set?)")
+	}
+
 	cmd := exec.Command("knife", "node", "show", input.ChefNode, "-c", input.KnifeRbFile, "-F", "json", "-a", input.ChefAttribute)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
