@@ -28,10 +28,17 @@ type ConsulConfig struct {
 	Prefix string
 }
 
+// SaveReport ...
+type SaveReport struct {
+	NumItemsSaved int
+}
+
 var input = &Input{}
 var consulConfig = &ConsulConfig{}
 
 func init() {
+}
+func loadInputParams() {
 	input.ChefNode = os.Args[1]
 	input.ChefAttribute = os.Args[2]
 	input.KnifeRbFile = os.Getenv("KNIFERB_FILE")
@@ -39,11 +46,11 @@ func init() {
 	consulConfig.Prefix = os.Getenv("CONSUL_PREFIX")
 	consulConfig.Host = os.Getenv("CONSUL_HOST")
 	consulConfig.Token = os.Getenv("CONSUL_TOKEN")
-
 }
 
 func main() {
 
+	loadInputParams()
 	if _, err := os.Stat(input.KnifeRbFile); os.IsNotExist(err) {
 		log.Fatal("You must provide a valid path to the knife RB (is KNIFERB_FILE env var set?)")
 	}
@@ -63,13 +70,14 @@ func main() {
 			chefConfig := f[input.ChefNode].(map[string]interface{})[input.ChefAttribute]
 			fullStruct := make(map[string]string)
 			processNode(consulConfig.Prefix, fullStruct, chefConfig)
-			saveItem(fullStruct, consulConfig)
+			report := saveItem(fullStruct, consulConfig)
+			fmt.Println(getReport(report))
 		}
 
 	}
 }
 
-func saveItem(pairs map[string]string, consulConf *ConsulConfig) {
+func saveItem(pairs map[string]string, consulConf *ConsulConfig) *SaveReport {
 
 	os.Setenv("CONSUL_HTTP_SSL_VERIFY", "false")
 	config := api.DefaultConfig()
@@ -77,6 +85,7 @@ func saveItem(pairs map[string]string, consulConf *ConsulConfig) {
 	config.Token = consulConf.Token
 	config.Scheme = "https"
 
+	saveReport := &SaveReport{}
 	client, _ := api.NewClient(config)
 	kv := client.KV()
 
@@ -85,9 +94,15 @@ func saveItem(pairs map[string]string, consulConf *ConsulConfig) {
 		_, err := kv.Put(p, nil)
 		if err != nil {
 			panic(err)
+		} else {
+			saveReport.NumItemsSaved++
 		}
 	}
+	return saveReport
 
+}
+func getReport(saveReport *SaveReport) string {
+	return fmt.Sprintf("%v items inserted.\n", saveReport.NumItemsSaved)
 }
 
 func processNode(fullPath string, fullStruct map[string]string, curNode interface{}) {
