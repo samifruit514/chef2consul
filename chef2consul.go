@@ -69,15 +69,15 @@ func main() {
 		} else {
 			chefConfig := f[input.ChefNode].(map[string]interface{})[input.ChefAttribute]
 			fullStruct := make(map[string]string)
-			processNode(consulConfig.Prefix, fullStruct, chefConfig)
-			report := saveItem(fullStruct, consulConfig)
+			processNode(consulConfig.Prefix+"/"+input.ChefAttribute, fullStruct, chefConfig)
+			report := saveItems(fullStruct, consulConfig)
 			fmt.Println(getReport(report))
 		}
 
 	}
 }
 
-func saveItem(pairs map[string]string, consulConf *ConsulConfig) *SaveReport {
+func saveItems(pairs map[string]string, consulConf *ConsulConfig) *SaveReport {
 
 	os.Setenv("CONSUL_HTTP_SSL_VERIFY", "false")
 	config := api.DefaultConfig()
